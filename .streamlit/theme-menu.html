@@ -1,0 +1,39 @@
+<style>
+[data-testid="stMainMenuItem-theme-System"],
+[data-testid="stMainMenuItem-print"],
+[data-testid="stMainMenuItem-recordScreencast"],
+[data-testid="stMainMenuDivider"] { display: none; }
+</style>
+<script type="module">
+// Streamlit focuses System when its menu opens. Keep focus and arrow keys on the visible choices.
+const trigger = document.querySelector('[data-testid="stMainMenuButton"]');
+if (trigger && !trigger.dataset.chatThemeMenu) {
+  trigger.dataset.chatThemeMenu = "true";
+  trigger.addEventListener("click", () => requestAnimationFrame(() => {
+    const group = document.querySelector('[data-testid="stThemeSwitcher"]');
+    if (!group) return;
+    const choices = [...group.querySelectorAll('[role="menuitemradio"]')].filter(button => button.offsetWidth);
+    let selected = choices.find(button => button.getAttribute("aria-checked") === "true");
+    if (!selected) {
+      // On first use, replace Streamlit's System preference with its current visible theme.
+      const theme = matchMedia("(prefers-color-scheme: dark)").matches ? "Dark" : "Light";
+      selected = group.querySelector(`[data-testid="stMainMenuItem-theme-${theme}"]`);
+      selected?.click();
+    }
+    selected?.focus();
+    group.onkeydown = event => {
+      const index = choices.indexOf(document.activeElement);
+      const targets = {
+        ArrowDown: (index + 1) % choices.length,
+        ArrowUp: (index + choices.length - 1) % choices.length,
+        Home: 0,
+        End: choices.length - 1
+      };
+      if (!(event.key in targets)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      choices[targets[event.key]].focus();
+    };
+  }));
+}
+</script>
