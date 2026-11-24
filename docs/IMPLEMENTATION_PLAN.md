@@ -1,12 +1,12 @@
 # Conversational scheduling assistant implementation plan
 
-Build a Streamlit chat app backed by one Python scheduling agent. The first milestone is a founder opening the app, asking “What’s on my calendar tomorrow?”, and seeing their live Cal.com agenda in local time. Add booking, cancellation, and rescheduling through the same chat. [Take-home requirements](REQUIREMENTS.md)
+The local Streamlit app shows the founder’s weekly Cal.com agenda and supports all four take-home actions in chat. A founder can ask “What’s on my calendar tomorrow?”, book an opening, move a meeting or cancel it. [Take-home requirements](REQUIREMENTS.md)
 
-The build order and iteration rounds below describe the original plan. The shipped app, dated test results, and completed recording are documented in the [implementation status](IMPLEMENTATION_STATUS.md).
+The build order and iteration rounds below describe the original plan. See the [implementation status](IMPLEMENTATION_STATUS.md) for the shipped app and recording, and the [evaluation results](RESULTS.md) for dated scores and reruns.
 
 ## Agent design
 
-The app uses the **OpenAI Agents SDK** with `gpt-6-luna` by default. The original baseline used `gpt-5.4-mini`. The agent receives the transcript, current local date and time, and structured details such as the selected opening, attendee, and pending changes. It can read the agenda, search slots, and choose a tool for one appointment or several. Python validates the calendar data, prepares previews and applies confirmed changes. A clear single cancellation can proceed immediately. Langfuse receives saved evaluation results through a separate publishing step. [Scheduling code](scheduling.py) · [Multi-meeting tools](meeting_batch.py) · [OpenAI Agents SDK](https://developers.openai.com/api/docs/guides/agents)
+The app uses the **OpenAI Agents SDK** with `gpt-6-luna` by default. The original baseline used `gpt-5.4-mini`. The agent receives the transcript, current local date and time, and structured details such as the selected opening, attendee, and pending changes. It can read the agenda, search slots, and choose a tool for one appointment or several. Python validates the calendar data, prepares previews and applies confirmed changes. A clear single cancellation can proceed immediately. Langfuse receives saved evaluation results through a separate publishing step. [Scheduling code](../scheduling.py) · [Multi-meeting tools](../meeting_batch.py) · [OpenAI Agents SDK](https://developers.openai.com/api/docs/guides/agents)
 
 For “move my 3 pm to later today,” the agent finds the original booking and asks for later openings. If it offers 4 and 4:30, “the second one” must resolve to the stored 4:30 slot for that booking. The assistant shows the original and proposed times. After confirmation, Python submits the reschedule and remembers the returned UID so “cancel it” can target the moved meeting.
 
@@ -14,14 +14,14 @@ All four actions use the same calendar and conversation. Keep one agent and keep
 
 | Agent framework | When I would choose it for this project |
 | --- | --- |
-| OpenAI Agents SDK | Used for this single-provider app. It runs the tool loop and can send model and tool traces to Langfuse through the documented integration. [Langfuse integration](https://langfuse.com/integrations/frameworks/openai-agents) |
+| OpenAI Agents SDK | Runs the model and tool loop for this single-provider app. SDK tracing is disabled in the chat. The evaluation harness captures trial results and can publish them to local Langfuse. [Scheduling code](../scheduling.py) · [Experiment publisher](../tests/publish_prompt_comparison.py) |
 | LangChain | Choose `create_agent` if comparing model providers or using LangChain middleware is part of the goal. The additional provider abstraction has limited value for a demo using one OpenAI model. [LangChain agents](https://docs.langchain.com/oss/python/langchain/agents) |
 | Strands Agents | A good fit if the implementer already knows Strands or wants its lifecycle hooks around model and tool calls. Its OpenAI provider accepts the existing key. For this project, the choice comes down to familiarity with the runner and its debugging workflow. [Strands OpenAI provider](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/) · [Agent loop and hooks](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/agent-loop/) |
 
 ## Build order
 
-1. **Start with the Streamlit chat page.** Create `app.py` with a message input, transcript, and founder time zone. Pass each newly submitted message to one Python function that handles a conversation turn. Keep the booking draft, displayed options, and selected booking in that user's session. The UI and evaluations call the same function.
-2. **Connect the first live action, then extend the client.** Wire `list_bookings` to the OpenAI agent and verify tomorrow’s agenda in the browser. Add the remaining Cal.com operations as each action is implemented. Send the founder’s bearer token and the version for each endpoint. Return the booking UID, status, and times to the chat layer.
+1. **Chat and session state.** Streamlit passes each submitted message to `chat_turn`. The session retains the transcript, booking draft, displayed openings and selected meeting. The conversation tests use the same entry point.
+2. **Live agenda and Cal.com client.** The first live action was viewing tomorrow’s agenda. The client now implements the five scheduling operations below, with a version header for each endpoint.
 
    | Operation | Endpoint | `cal-api-version` |
    | --- | --- | --- |
@@ -31,14 +31,14 @@ All four actions use the same calendar and conversation. Keep one agent and keep
    | Cancel | `POST /v2/bookings/{bookingUid}/cancel`. Include a reason when the user gives one. [Cancel](https://cal.com/docs/api-reference/v2/bookings/cancel-a-booking) | `2026-02-25` |
    | Move | Check slots with `bookingUidToReschedule`, then call `POST /v2/bookings/{bookingUid}/reschedule` with the selected UTC start. Keep the UID returned by the move. [Reschedule](https://cal.com/docs/api-reference/v2/bookings/reschedule-a-booking) | `2026-02-25` |
 
-   The client also reads `GET /v2/event-types` for automatic event selection and `GET /v2/event-types/{id}` for supported lengths and booking fields. Both use version `2026-06-12`. [Cal.com client](cal_client.py)
+   The client also reads `GET /v2/event-types` for automatic event selection and `GET /v2/event-types/{id}` for supported lengths and booking fields. Both use version `2026-06-12`. [Cal.com client](../cal_client.py)
 
-3. **Add booking, cancellation, and rescheduling to the chat.** Resolve relative dates in the founder’s time zone. Offer returned openings, clarify ambiguous matches, and report rejected or pending operations accurately. Scope each write to its submitted turn so redrawing the page cannot repeat it.
-4. **Verify and record the browser demo.** Exercise the five endpoints against the live test calendar, run the conversation evaluations, and record the four actions in Streamlit. Document the local launch command in the submission README.
+3. **Calendar changes.** Booking and rescheduling show the proposed local time and duration before confirmation. Bulk cancellations show the affected meetings and any shared reason. When several changes are confirmed together, the reply reports the outcome for each meeting.
+4. **Browser acceptance.** The recorded run exercised all four actions with two test attendees and real OpenAI and Cal.com calls. The README includes the local launch command and the recording. [Demo and setup](../README.md)
 
 ## Test setup
 
-- **Live account and dates.** Use a personal event type with a 30-minute default and a 60-minute option for the full conversation suite. On the founder’s account, mute host booking emails using the account preferences or the event settings. Route attendee invitations to a separate controlled inbox when attendee emails are enabled. Keep custom email workflows and connected-calendar notices away from everyday inboxes. A separate Cal.com test account can use its dedicated inbox for both roles. Choose future openings using the founder’s IANA time zone and actual clock. For “tomorrow” or “later today,” verify that the test window exists on the corresponding local date. [Live test configuration](TESTING.md#round-1-live-checks)
+- **Live account and dates.** The full conversation suite uses a personal event type with a 30-minute default and a 60-minute option. A private Mailosaur inbox receives test invitations. For relative-date scenarios such as “tomorrow,” the fixtures find an isolated future opening and can set the chat clock relative to that date. Availability and booking changes still go through Cal.com. The testing guide covers host notifications and inbox configuration. [Live test configuration](TESTING.md#round-1-live-checks)
 - **Isolate each conversation.** Create the specified starting bookings through Cal.com and record their UIDs, times, and statuses. Keep a fresh chat session per case. Track UIDs from creates and moves, including competing bookings created by the test driver. Clean up only this run’s bookings after the assertions, including on failure. If setup cannot produce the required live state, record the case as unexercised and explain why.
 - **Score from independent evidence.** Deliver one user message at a time through the real chat entry point. Capture outgoing tool calls and read the agenda directly from Cal.com after each write. Count agent writes separately from setup, readback, and cleanup. Compare the reply, target UID, UTC instant, and booking status with that evidence.
 
@@ -50,33 +50,31 @@ Use **pytest** to drive the scenarios and check outcomes. Use **Langfuse** to co
 
 | Run | What it answers | How to score it |
 | --- | --- | --- |
-| Live Cal.com client checks | Does the client send valid requests and interpret real responses? | Exercise slots, create, list, move, and cancel directly. Verify shapes, status, and agenda changes before testing the model. [Live API contract cases](tests/calendar_contract.md) |
+| Live Cal.com client checks | Does the client send valid requests and interpret real responses? | Exercise slots, create, list, move, and cancel directly. Verify shapes, status, and agenda changes before testing the model. [Live API contract cases](../tests/calendar_contract.md) |
 | Live conversation tests with real OpenAI and Cal.com | Does the agent choose the correct operation and accurately describe its outcome? | Start with B1, V1, C1, and R1. Check the active agenda after each change and assert zero agent writes on read-only or ambiguous turns. Measure OpenAI, Cal.com, and end-to-end time on these runs. |
-| Targeted failure injection | Does the chatbot recover from conditions that are hard to trigger on demand? | Inject a repeated stale slot response (B6 variant), a service outage (X1 variant), a lost create response after a real commit (X2), or invalid model tool arguments (X4). Keep the rest of the path live. Report these results separately. [Failure cases](tests/failures.md) |
+| Targeted failure injection | Does the chatbot recover from conditions that are hard to trigger on demand? | Inject a repeated stale slot response (B6 variant), a service outage (X1 variant), a lost create response after a real commit (X2), or invalid model tool arguments (X4). Keep the rest of the path live. Report these results separately. [Failure cases](../tests/failures.md) |
 
-For the first Langfuse comparison, use B1, V1, C1, R1, C2, the live B6 conflict, and R4. Run two phrasings twice per prompt version (28 conversations), recreating equivalent live bookings and recording the actual available times for each run. Hold the model and case criteria fixed. In C2, cancelling a meeting before the user identifies Friday fails even if the final agenda happens to match.
+The archived-prompt comparison runs seven scenarios (B1, V1, C1, R1, C2, the live B6 conflict, and R4). Two phrasings and two repetitions give 28 conversations per prompt and 56 across both prompts. Both use the same model and checks for a given comparison. In C2, for example, cancelling before the user identifies Friday fails even if the final agenda happens to match. [Comparison harness](../tests/test_prompt_comparison.py) · [Dated results](RESULTS.md#november-23-prompt-comparison)
 
 Report passes/attempts per action, unexercised cases, and injected-failure results. A wrong-target write, duplicate write, or false success requires a fix and a rerun. Inspect the tool trace alongside the direct agenda readback to distinguish a model decision error from a client or reporting error.
 
 ## Test cases
 
-- [Booking](tests/booking.md) covers B1–B12, including two proposed interviews that overlap.
-- [Viewing scheduled events](tests/viewing.md) covers V1–V5 and the weekly schedule UI.
-- [Cancelling](tests/cancellation.md) covers C1–C9, including partial success and a shared cancellation reason.
-- [Rescheduling](tests/rescheduling.md) covers R1–R8 and the Hellen/Maya conflict followed by a corrected day.
-- [Failure handling across actions](tests/failures.md) covers X1–X4, including a lost receipt and duplicate delivery.
+- [Booking](../tests/booking.md) covers B1–B12, including two proposed interviews that overlap.
+- [Viewing scheduled events](../tests/viewing.md) covers V1–V5 and the weekly schedule UI.
+- [Cancelling](../tests/cancellation.md) covers C1–C9, including partial success and a shared cancellation reason.
+- [Rescheduling](../tests/rescheduling.md) covers R1–R8 and the Hellen/Maya conflict followed by a corrected day.
+- [Failure handling across actions](../tests/failures.md) covers X1–X4, including a lost receipt and duplicate delivery.
 
-The original 26 conversation cases grew into these families, ten additional multi-turn situations (H1–H10), and regressions using fresh wording. Several cases have multiple phrasings or outcomes. Six API contracts run together in one pytest check. The testing guide explains how to count and run the collected tests. [Live Cal.com contracts](tests/calendar_contract.md) · [Testing guide](TESTING.md)
+The original 26 conversation cases grew into these families, ten additional multi-turn situations (H1–H10), and regressions using fresh wording. Several cases have multiple phrasings or outcomes. Six API contracts run together in one pytest check. The testing guide explains how to count and run the collected tests. [Live Cal.com contracts](../tests/calendar_contract.md) · [Testing guide](TESTING.md)
 
 ## Frontend
 
-The **Streamlit** page shows a weekly agenda above the chat, with week navigation and the founder’s time zone. It keeps the selected week visible while processing a message and refreshes the agenda after the reply. If a read fails, the page offers a retry and shows the last loaded schedule for that week when available. Chat displays openings in order so the user can choose “the second one.” **Refresh** starts a fresh chat and returns to the current week. [Streamlit app](app.py)
+The **Streamlit** page shows a weekly agenda above the chat, with week navigation and the founder’s time zone. It keeps the selected week visible while processing a message and refreshes the agenda after the reply. If a read fails, the page offers a retry and shows the last loaded schedule for that week when available. Chat displays openings in order so the user can choose “the second one.” **Refresh** starts a fresh chat and returns to the current week. [Streamlit app](../app.py)
 
 Only a newly submitted message invokes the agent. A Streamlit rerun redraws the stored transcript. Check this by booking once, triggering a redraw, and verifying the calendar still contains exactly one booking. A full page reload starts a fresh conversation because Streamlit session state is tied to the connection. The founder can look up the existing booking again from Cal.com. [Streamlit session state](https://docs.streamlit.io/develop/api-reference/caching-and-state/st.session_state)
 
-**Local launch.** From the repository root, run `streamlit run app.py` and open the browser URL it prints. The server reads the existing OpenAI and Cal.com keys from its environment.
-
-**Optional hosted demo.** In Streamlit Community Cloud, select the GitHub repo, branch, and `app.py`. Use a dedicated demo calendar, store the API keys in the app’s Secrets settings, and limit access to invited reviewers. Verify the live agenda from the hosted chat before including its URL in the README. [Deployment guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) · [App secrets](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) · [Reviewer access](https://docs.streamlit.io/deploy/streamlit-community-cloud/share-your-app)
+For local setup, copy [`.env.example`](../.env.example) to `.env` and fill in the OpenAI and Cal.com keys. The README explains how to select the event type and start the app at `http://127.0.0.1:8501/`. [Local setup](../README.md#setup) · [Run locally](../README.md#run-locally)
 
 ## Real cases behind the design
 
@@ -102,10 +100,10 @@ Repeat rounds 2 and 3 when a rerun exposes a regression. Once the exit criteria 
 
 ### Acceptance run
 
-For a minimal repeatable check, use one future meeting, a test attendee you control, and the Streamlit browser UI with real OpenAI and Cal.com. The completed recording extends this sequence to two interviews, conflicting times, and recovery after a mistaken cancellation. [Recorded demo](scheduling-assistant-demo.mp4)
+For a minimal repeatable check, use one future meeting, a test attendee you control, and the Streamlit browser UI with real OpenAI and Cal.com. The completed recording extends this sequence to two interviews, conflicting times, and recovery after a mistaken cancellation. [Recorded demo](../scheduling-assistant-demo.mp4)
 
 1. Ask for openings, choose one, book it, and ask to see that day’s agenda. Verify directly in Cal.com that exactly one active booking exists for this test meeting.
 2. Ask to move it, choose another opening, and list the agenda again. Verify that the meeting is active once at the new time and that its original slot no longer contains that booking.
 3. Ask to cancel the moved meeting and check the agenda once more. Verify that the test meeting has zero active bookings and unrelated meetings remain intact.
 
-Record the passing browser conversation. Submit the recording and the public or shared GitHub repository with a README explaining setup and the Streamlit launch command. [Submission requirements](REQUIREMENTS.md#submission)
+The repository includes the completed recording and local setup instructions. The seven attendee emails in Mailosaur matched the recorded bookings, Jordan’s move, Riley’s cancellation and rebooking, and the two cancellations during cleanup. [Demo recording](../scheduling-assistant-demo.mp4) · [Submission requirements](REQUIREMENTS.md#submission)

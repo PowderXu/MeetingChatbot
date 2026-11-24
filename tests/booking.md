@@ -1,6 +1,6 @@
 # Booking
 
-Run these conversations with real OpenAI and the live Cal.com test event type. Discover openings before composing the prompts and use controlled attendee inboxes. For each successful booking, check the preview and verify zero creates before replying “Confirm.” The attendee defaults to the founder’s calendar time zone unless another zone is supplied. B6 also exercises a stale slot lookup. [Shared test setup](../IMPLEMENTATION_PLAN.md#test-setup)
+Run these conversations with real OpenAI and the live Cal.com test event type. Discover openings before composing the prompts and use controlled attendee inboxes. For each successful booking, check the preview and verify zero creates before replying “Confirm.” The attendee defaults to the founder’s calendar time zone unless another zone is supplied. B6 also exercises a stale slot lookup. [Shared test setup](../docs/IMPLEMENTATION_PLAN.md#test-setup)
 
 | Case | Conversation and setup | Pass criteria |
 | --- | --- | --- |

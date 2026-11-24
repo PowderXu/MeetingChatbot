@@ -1,6 +1,6 @@
 # Cancelling
 
-Run the cancellation conversations with real OpenAI and Cal.com. Create matching meetings for the specified dates with controlled attendees and save their UIDs. After each turn, query Cal.com to verify both the intended target and any booking that should remain active. [Shared test setup](../IMPLEMENTATION_PLAN.md#test-setup)
+Run the cancellation conversations with real OpenAI and Cal.com. Create matching meetings for the specified dates with controlled attendees and save their UIDs. After each turn, query Cal.com to verify both the intended target and any booking that should remain active. [Shared test setup](../docs/IMPLEMENTATION_PLAN.md#test-setup)
 
 | Case | Conversation and setup | Pass criteria |
 | --- | --- | --- |

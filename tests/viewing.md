@@ -1,6 +1,6 @@
 # Viewing scheduled events
 
-Run V1–V5 with real OpenAI and Cal.com. Create the scenario’s bookings through Cal.com and take a direct agenda snapshot before starting the chat. Viewing should cause zero booking writes. [Shared test setup](../IMPLEMENTATION_PLAN.md#test-setup)
+Run V1–V5 with real OpenAI and Cal.com. Create the scenario’s bookings through Cal.com and take a direct agenda snapshot before starting the chat. Viewing should cause zero booking writes. [Shared test setup](../docs/IMPLEMENTATION_PLAN.md#test-setup)
 
 | Case | Conversation and setup | Pass criteria |
 | --- | --- | --- |

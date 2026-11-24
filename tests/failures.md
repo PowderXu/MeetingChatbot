@@ -1,6 +1,6 @@
 # Failure handling across actions
 
-Use real OpenAI and Cal.com wherever the test driver can create the condition. For the injected variants, change only the named response or arguments and keep the rest of the conversation live. Score live and injected runs separately. [Shared test setup](../IMPLEMENTATION_PLAN.md#test-setup)
+Use real OpenAI and Cal.com wherever the test driver can create the condition. For the injected variants, change only the named response or arguments and keep the rest of the conversation live. Score live and injected runs separately. [Shared test setup](../docs/IMPLEMENTATION_PLAN.md#test-setup)
 
 | Case | Conversation and setup | Pass criteria |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # Rescheduling
 
-Run these conversations with real OpenAI and Cal.com. Book the original meeting through the test account, retain its UID, and find destination slots in the live schedule. Verify that the preview leaves the original intact. Reply “Confirm” to commit a move and read the agenda again. [Shared test setup](../IMPLEMENTATION_PLAN.md#test-setup)
+Run these conversations with real OpenAI and Cal.com. Book the original meeting through the test account, retain its UID, and find destination slots in the live schedule. Verify that the preview leaves the original intact. Reply “Confirm” to commit a move and read the agenda again. [Shared test setup](../docs/IMPLEMENTATION_PLAN.md#test-setup)
 
 | Case | Conversation and setup | Pass criteria |
 | --- | --- | --- |

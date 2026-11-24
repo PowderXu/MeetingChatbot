@@ -1,6 +1,6 @@
 # Live Cal.com API contract tests
 
-Call the five live endpoints directly through the Python Cal.com client to verify request handling, response parsing, and booking state. The conversation suites exercise those same operations through real OpenAI. [Evaluation plan and API versions](../IMPLEMENTATION_PLAN.md#build-order)
+Call the five live endpoints directly through the Python Cal.com client to verify request handling, response parsing, and booking state. The conversation suites exercise those same operations through real OpenAI. [Evaluation plan and API versions](../docs/IMPLEMENTATION_PLAN.md#build-order)
 
 ## Setup
 
@@ -23,4 +23,4 @@ Call the five live endpoints directly through the Python Cal.com client to verif
 
 Record the request method, endpoint version, HTTP status, relevant response fields, and agenda readback for each live case. If the starting slots changed before the run, mark the affected case inconclusive and repeat with fresh slots.
 
-After the run, cancel any still-active bookings created for the test, including the control. If a write timed out, read the dedicated test agenda to identify the resulting booking before cleanup. Live latency and agent accuracy are recorded in the separate conversation evaluation. [Evaluation framework and scoring](../IMPLEMENTATION_PLAN.md#evaluation-framework-and-scoring)
+After the run, cancel any still-active bookings created for the test, including the control. If a write timed out, read the dedicated test agenda to identify the resulting booking before cleanup. Live latency and agent accuracy are recorded in the separate conversation evaluation. [Evaluation framework and scoring](../docs/IMPLEMENTATION_PLAN.md#evaluation-framework-and-scoring)
